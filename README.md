@@ -7,6 +7,17 @@ to a GeoTIFF and loaded into any GIS tool.
 
 Bhuvanam (bhoo-vuh-num) is the Sanskrit word describing either the universe, Earth or the planets
 
+## Contents
+
+- [Install](#install)
+- [Core concepts](#core-concepts)
+- [Coordinate conventions](#coordinate-conventions)
+- [Example 1 — FITS equirectangular mosaic](#example-1--fits-equirectangular-mosaic)
+- [Example 2 — Reprojecting a GeoTIFF](#example-2--reprojecting-a-geotiff)
+- [Supported source formats](#supported-source-formats)
+- [Using a custom planet](#using-a-custom-planet)
+- [Progress logging](#progress-logging)
+
 ## Install
 
 ```bash
@@ -84,8 +95,9 @@ obs = Observation(
     input_projection=InputProjection.EQUIRECTANGULAR_PLANETOGRAPHIC,
 )
 
-# obs.base_crs is the planet's geographic CRS — use it as the geodetic base
-# for any target projection.
+# obs.base_crs is the planet's geographic CRS — a pyproj.GeographicCRS built on
+# the planet's ellipsoid and datum. Pass it as the last argument to any
+# ProjectedCRS you construct. Shortcut for obs.gridconfig.projector.base_crs.
 laea_op = crs.coordinate_operation.LambertAzimuthalEqualAreaConversion(
     latitude_natural_origin=20,    # degrees, planetographic
     longitude_natural_origin=-160, # east-positive: 180 - SysIII_lon
@@ -140,7 +152,10 @@ from pyproj import crs
 # Load a previously reprojected GeoTIFF
 obs = Observation("patch.tif", planet="jupiter")
 
-# Reproject into a different projection (e.g. equidistant cylindrical)
+# eqcyl_projection is a convenience attribute on BaseProjector — a pre-built
+# equidistant cylindrical (plate carrée) ProjectedCRS on the planet's ellipsoid.
+# Use it for a simple rectangular output grid without constructing a custom CRS.
+# For a specific region or oblique view, build a ProjectedCRS explicitly (see Example 1).
 eqcyl_crs = obs.gridconfig.projector.eqcyl_projection
 
 raster = obs.project_to(
