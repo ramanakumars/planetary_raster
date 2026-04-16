@@ -31,7 +31,37 @@ Observation.project_to(target_crs, bounds, resolution)
     ├─ IDW blend → output pixel value
     │
     └─ Raster(data, target_crs, bounds, resolution)
+         row 0 = northernmost row (GeoTIFF north-up convention)
 ```
+
+## Coordinate conventions
+
+### Longitude — SysIII west-positive vs. pyproj east-positive
+
+`Bounds` for equirectangular source images uses **SysIII west-positive** longitude.
+Internally this is converted to pyproj east-positive via `lon_east = 180 − lon_sysIII`
+before the KDTree is built.
+
+When constructing a **target CRS** (e.g. LAEA), `longitude_natural_origin` must be
+in **east-positive** degrees:
+
+```
+SysIII 340° W  →  180 − 340 = −160° E
+SysIII 200° W  →  180 − 200 = −20°  E
+```
+
+### Bounds orientation
+
+`Bounds.bottom` must be ≤ `Bounds.top`. For a full-disk equirectangular image
+use `Bounds(left=360, right=0, bottom=-90, top=90)`. Passing inverted latitude
+raises `ValueError`. For JPEG and PNG images where the convention is north-down,
+this is handled internally in the code.
+
+### Output orientation
+
+All output from `project_to` follows the **GeoTIFF north-up** convention:
+`raster.data[0, :, :]` is the northernmost row. Display with matplotlib's default
+`ax.imshow(raster.data)` (no `origin` argument needed).
 
 ## Example 1 — FITS equirectangular mosaic
 
@@ -52,18 +82,18 @@ obs = Observation(
     input_projection=InputProjection.EQUIRECTANGULAR_PLANETOGRAPHIC,
 )
 
-# Build a Lambert Azimuthal Equal-Area CRS centred on a feature of interest
-base_crs = obs.gridconfig.projector.base_crs
+# obs.base_crs is the planet's geographic CRS — use it as the geodetic base
+# for any target projection.
 laea_op = crs.coordinate_operation.LambertAzimuthalEqualAreaConversion(
     latitude_natural_origin=20,    # degrees, planetographic
-    longitude_natural_origin=-160, # east-positive (pyproj convention: 180 - SysIII_lon)
+    longitude_natural_origin=-160, # east-positive: 180 - SysIII_lon
                                    # e.g. SysIII 340° → 180 - 340 = -160°
 )
 laea_crs = crs.ProjectedCRS(
     laea_op,
     "Jupiter LAEA",
     crs.coordinate_system.Cartesian2DCS(),
-    base_crs,
+    obs.base_crs,
 )
 
 # Reproject a 4000 km × 4000 km patch at 10 km/pixel
@@ -73,8 +103,8 @@ raster = obs.project_to(
     resolution=10e3,
 )
 
-print(raster.shape)          # (400, 400, N_channels)
-print(raster.bounds)         # actual output extent in metres
+print(raster)            # Raster(shape=(400, 400, N), resolution=10000m, crs='Jupiter LAEA')
+print(raster.bounds)     # actual output extent in metres
 raster.to_geotiff("patch.tif")
 ```
 
@@ -89,7 +119,7 @@ Jupiter):
 obs = Observation(
     "jupiter_mosaic_centric.fits",
     planet="jupiter",
-    bounds=Bounds(left=0, right=360, bottom=-90, top=90),
+    bounds=Bounds(left=360, right=0, bottom=-90, top=90),
     input_projection=InputProjection.EQUIRECTANGULAR_PLANETOCENTRIC,
 )
 ```
@@ -109,7 +139,6 @@ from pyproj import crs
 obs = Observation("patch.tif", planet="jupiter")
 
 # Reproject into a different projection (e.g. equidistant cylindrical)
-base_crs = obs.gridconfig.projector.base_crs
 eqcyl_crs = obs.gridconfig.projector.eqcyl_projection
 
 raster = obs.project_to(
@@ -130,9 +159,9 @@ from planetary_raster.raster import Raster
 
 raster = Raster.from_geotiff("patch.tif")
 print(raster.shape)       # (height, width, channels)
-print(raster.bounds)      # Bounds in the output CRS's metres
+print(raster.bounds)      # Bounds in the output CRS's units
 print(raster.resolution)  # pixel size in metres
-print(raster.projection)  # pyproj ProjectedCRS
+print(raster.projection)  # pyproj CRS
 ```
 
 ## Supported source formats
@@ -166,7 +195,16 @@ class Saturn(Planet):
 obs = Observation(
     "saturn_mosaic.fits",
     planet=Saturn(),
-    bounds=Bounds(left=0, right=360, bottom=-90, top=90),
+    bounds=Bounds(left=360, right=0, bottom=-90, top=90),
     input_projection=InputProjection.EQUIRECTANGULAR_PLANETOGRAPHIC,
 )
+```
+
+## Progress logging
+
+KDTree construction is logged at `INFO` level. Enable it with:
+
+```python
+import logging
+logging.basicConfig(level=logging.INFO)
 ```

@@ -39,6 +39,15 @@ class Raster:
         """``(height, width, channels)`` of the data array."""
         return self.data.shape
 
+    def __repr__(self) -> str:
+        h, w, c = self.data.shape
+        crs_name = getattr(self.projection, 'name', str(self.projection))
+        return (
+            f"Raster(shape=({h}, {w}, {c}), "
+            f"resolution={self.resolution:.0f}m, "
+            f"crs='{crs_name}')"
+        )
+
     def to_geotiff(self, path: str) -> None:
         """Write to a GeoTIFF file.
 
@@ -82,6 +91,10 @@ class Raster:
                 bottom=t.f + t.e * src.height,  # t.e is negative for north-up
             )
             resolution = t.a
-            projection = crs.ProjectedCRS.from_wkt(src.crs.to_wkt())
+            wkt = src.crs.to_wkt()
+            try:
+                projection = crs.ProjectedCRS.from_wkt(wkt)
+            except Exception:
+                projection = crs.CRS.from_wkt(wkt)
 
         return cls(data, projection, bounds, resolution)

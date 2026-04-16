@@ -36,7 +36,7 @@ ccrs._CRS._expected_types = ("Projected CRS", "Derived Projected CRS")
 
 def reproject_image(
     image_data: np.ndarray,
-    projection: crs.coordinate_operation.CoordinateOperation,
+    projection: crs.CRS,
     x_grid: np.ndarray,
     y_grid: np.ndarray,
     params: GridConfig,
@@ -54,7 +54,7 @@ def reproject_image(
     :type image_data: numpy.ndarray
     :param projection: pyproj CRS of the output grid (e.g. a local LAEA centred
         on the segment of interest).
-    :type projection: crs.coordinate_operation.CoordinateOperation
+    :type projection: pyproj.crs.CRS
     :param x_grid: X-axis distances for every output pixel, shape
         ``(output_height, output_width)``, units: metres.
     :type x_grid: numpy.ndarray
@@ -148,9 +148,11 @@ def scatter_to_grid(
     # Zero out contributions from neighbours that are too far away.
     weight[dist > max_dist_neighbors] = 0.0
 
-    weight = weight / np.sum(
-        weight, axis=1, keepdims=True
-    )  # normalise rows to sum to 1
+    row_sums = np.sum(weight, axis=1, keepdims=True)
+    # Avoid divide-by-zero for output pixels with no valid neighbours (all distances
+    # exceeded max_dist_neighbors). Those pixels are zeroed by the isfinite clamp below.
+    row_sums[row_sums == 0.0] = 1.0
+    weight = weight / row_sums
 
     # Accumulate weighted channel values for every output pixel.
     newvals = np.zeros((pix.shape[0], nchannels))
@@ -176,6 +178,7 @@ def extract_segment(
     max_dist: float = 8e6,
     n_neighbor: int = 15,
     max_dist_neighbors: float = 500e3,
+    flip_y: bool = False,
 ):
     """Extract a square image patch centred at a given (lon, lat) on Jupiter.
 
@@ -188,6 +191,10 @@ def extract_segment(
     Returns ``None`` if the reprojected patch contains more than five
     near-zero pixels in the first channel, indicating that the requested
     location falls outside the source image coverage.
+
+    The output follows the same north-down convention as :meth:`Observation.project_to`
+    (row 0 = northernmost), consistent with GeoTIFF. Pass ``flip_y=True`` for
+    display-convention output (row 0 = south, as used in astronomical image viewers).
 
     :param lon: Central longitude of the segment in degrees (SysIII).
     :type lon: float
@@ -207,6 +214,9 @@ def extract_segment(
     :param max_dist_neighbors: Maximum source-pixel distance (metres) for a
         neighbour to contribute to the interpolated value.
     :type max_dist_neighbors: float
+    :param flip_y: If ``True``, flip the output so row 0 = southernmost
+        (astronomical display convention). Default ``False`` (north-down).
+    :type flip_y: bool
     :returns: Reprojected image cube of shape ``(height, width, nchannels)``,
         or ``None`` if coverage is insufficient.
     :rtype: numpy.ndarray or None
@@ -246,9 +256,7 @@ def extract_segment(
     if np.sum(frames[:, :, 0] < 1.0e-10) > 5:
         return None
 
-    # Flip the y-axis: the reprojection produces a top-down array but
-    # astronomical images are conventionally stored bottom-up.
-    return frames[::-1]
+    return frames[::-1] if flip_y else frames
 
 
 def color_correction(data: np.ndarray) -> np.ndarray:

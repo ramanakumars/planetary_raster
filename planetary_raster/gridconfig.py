@@ -1,9 +1,14 @@
+import logging
+import time
+
 import numpy as np
 from pyproj import crs
 from scipy.spatial import cKDTree
 
 from .planet import Planet
 from .projection import BaseProjector, Bounds, InputProjection, planetocentric_to_planetographic
+
+logger = logging.getLogger(__name__)
 
 
 class GridConfig:
@@ -69,9 +74,12 @@ class GridConfig:
         * ``pix_tree`` — KDTree over (x_flat, y_flat).
         * ``lonlat_tree``, ``coordinates`` — geographic KDTree (equirectangular only).
         """
-        print('Building source pixel grid')
-        cols = np.linspace(bounds.left,   bounds.right,  image_shape[1])
-        rows = np.linspace(bounds.bottom, bounds.top,    image_shape[0])
+        t0 = time.perf_counter()
+        cols = np.linspace(bounds.left, bounds.right, image_shape[1])
+        # Row 0 in every image format (JPEG, PNG, FITS, GeoTIFF) is the topmost
+        # (northernmost) row.  Linspace from top → bottom so that pixel [0, j]
+        # maps to bounds.top and pixel [N-1, j] maps to bounds.bottom.
+        rows = np.linspace(bounds.top, bounds.bottom, image_shape[0])
         x_src, y_src = np.meshgrid(cols, rows)
         x_flat = x_src.flatten()
         y_flat = y_src.flatten()
@@ -94,3 +102,12 @@ class GridConfig:
             self.source_crs = self._raw_source_crs
 
         self.pix_tree = cKDTree(np.vstack((self.x_flat, self.y_flat)).T)
+        n_pixels = image_shape[0] * image_shape[1]
+        logger.info(
+            "Built source pixel grid (%d×%d = %d pixels) in %.1fs",
+            image_shape[1], image_shape[0], n_pixels, time.perf_counter() - t0,
+        )
+
+    def __repr__(self) -> str:
+        crs_name = getattr(self.source_crs, 'name', str(self.source_crs))
+        return f"GridConfig(planet='{self.planet.name}', source_crs='{crs_name}')"

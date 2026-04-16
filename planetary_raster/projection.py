@@ -44,19 +44,33 @@ def planetocentric_to_planetographic(
 class Bounds:
     """Axis-aligned spatial extent in a given CRS.
 
-    For equirectangular / geographic inputs the units are degrees (SysIII
-    longitude, planetographic latitude). For projected inputs the units are
-    metres in the relevant CRS.
+    For equirectangular / geographic inputs the units are degrees. Longitude
+    values must be in **SysIII west-positive** convention (e.g. ``left=360,
+    right=0`` for a full-disk mosaic); the conversion to pyproj east-positive
+    longitude is applied internally by :class:`GridConfig`.  Latitude values
+    are planetographic (or planetocentric if
+    :attr:`InputProjection.EQUIRECTANGULAR_PLANETOCENTRIC` is used). For
+    projected inputs the units are metres in the relevant CRS.
 
-    :param left: West edge (minimum x / longitude).
-    :param right: East edge (maximum x / longitude).
-    :param bottom: South edge (minimum y / latitude).
-    :param top: North edge (maximum y / latitude).
+    :param left: West edge (minimum x / longitude), SysIII west-positive for equirectangular.
+    :param right: East edge (maximum x / longitude), SysIII west-positive for equirectangular.
+    :param bottom: South edge (minimum y / latitude). Must be <= ``top``.
+    :param top: North edge (maximum y / latitude). Must be >= ``bottom``.
     """
     left: float
     right: float
     bottom: float
     top: float
+
+    def __post_init__(self):
+        if self.top < self.bottom:
+            raise ValueError(
+                f"Bounds.top ({self.top}) must be >= Bounds.bottom ({self.bottom}). "
+                "Pass bottom=-90, top=90 for a full-disk equirectangular image — "
+                "GridConfig handles image row ordering internally."
+            )
+        if self.left == self.right:
+            raise ValueError("Bounds.left and Bounds.right must not be equal.")
 
     @classmethod
     def from_pyproj_tuple(cls, bounds):
@@ -70,11 +84,11 @@ class Bounds:
 
     def as_tuple(self) -> tuple[float, float, float, float]:
         """Return ``(left, right, bottom, top)``."""
-        return [self.left, self.right, self.bottom, self.top]
+        return (self.left, self.right, self.bottom, self.top)
 
     def as_proj_tuple(self) -> tuple[float, float, float, float]:
         """Return ``(west, south, east, north)`` for pyproj/rasterio APIs."""
-        return [self.left, self.bottom, self.right, self.top]
+        return (self.left, self.bottom, self.right, self.top)
 
 
 
