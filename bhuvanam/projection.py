@@ -11,7 +11,7 @@ from .planet import Planet
 class InputProjection(str, Enum):
     """Describes the coordinate system of a source observation image.
 
-    Used by :class:`~planetary_raster.gridconfig.GridConfig` to correctly map
+    Used by :class:`~bhuvanam.gridconfig.GridConfig` to correctly map
     source pixel positions into the source CRS before building the KDTree.
     For a custom pyproj CRS, pass the CRS object directly instead of this enum.
     """

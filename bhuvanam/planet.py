@@ -43,5 +43,5 @@ class Jupiter(Planet):
 
 
 #: Registry of supported planets. Keys are lower-case planet names.
-#: Pass the key as ``planet_name`` to :class:`~planetary_raster.observation.Observation`.
+#: Pass the key as ``planet_name`` to :class:`~bhuvanam.observation.Observation`.
 planets = {"jupiter": Jupiter()}

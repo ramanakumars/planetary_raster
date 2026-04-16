@@ -25,7 +25,7 @@ class GridConfig:
         For projected inputs: extent in that CRS's metres.
     :param image_shape: ``(height, width)`` of the source image in pixels.
     :param input_projection: Coordinate system of the source image pixels.
-        Pass an :class:`~planetary_raster.projection.InputProjection` enum value for
+        Pass an :class:`~bhuvanam.projection.InputProjection` enum value for
         equirectangular sources, or a :class:`pyproj.crs.ProjectedCRS` for any other
         projected source.
     :param filters: Optional list of spectral filter names for this dataset.

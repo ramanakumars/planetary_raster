@@ -1,9 +1,11 @@
-# planetary-raster
+# bhuvanam 
 
 Reproject planetary observation images into any map projection using pyproj.
 Source images can be equirectangular mosaics (FITS, JPEG, PNG) or previously
 reprojected GeoTIFFs. Output is a georeferenced `Raster` that can be written
 to a GeoTIFF and loaded into any GIS tool.
+
+Bhuvanam (bhoo-vuh-num) is the Sanskrit word describing either the universe, Earth or the planets
 
 ## Install
 
@@ -70,8 +72,8 @@ A full-disk Jupiter mosaic in FITS format, stored as an equirectangular
 
 ```python
 from pyproj import crs
-from planetary_raster.observation import Observation
-from planetary_raster.projection import Bounds, InputProjection
+from bhuvanam.observation import Observation
+from bhuvanam.projection import Bounds, InputProjection
 
 # Load source observation
 # bounds: SysIII West lon 0–360°, planetographic lat −90–90°
@@ -131,8 +133,8 @@ as an `Observation` for further reprojection. The CRS and bounds are read from
 the file's geospatial metadata — no additional arguments needed.
 
 ```python
-from planetary_raster.observation import Observation
-from planetary_raster.projection import Bounds
+from bhuvanam.observation import Observation
+from bhuvanam.projection import Bounds
 from pyproj import crs
 
 # Load a previously reprojected GeoTIFF
@@ -155,7 +157,7 @@ raster.to_geotiff("patch_cylindrical.tif")
 `Raster.from_geotiff` reconstructs the full object including bounds and CRS:
 
 ```python
-from planetary_raster.raster import Raster
+from bhuvanam.raster import Raster
 
 raster = Raster.from_geotiff("patch.tif")
 print(raster.shape)       # (height, width, channels)
@@ -182,9 +184,9 @@ Subclass `Planet` as a dataclass and pass an instance directly to `Observation`:
 
 ```python
 from dataclasses import dataclass
-from planetary_raster.planet import Planet
-from planetary_raster.observation import Observation
-from planetary_raster.projection import Bounds, InputProjection
+from bhuvanam.planet import Planet
+from bhuvanam.observation import Observation
+from bhuvanam.projection import Bounds, InputProjection
 
 @dataclass
 class Saturn(Planet):

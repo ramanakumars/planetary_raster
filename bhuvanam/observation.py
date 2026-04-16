@@ -23,8 +23,8 @@ class Observation:
     to any target CRS via :meth:`project_to`.
 
     :param file_path: Path to the source image (.fits, .tif, .jpg, .png).
-    :param planet: A :class:`~planetary_raster.planet.Planet` instance, or a
-        string key from the :data:`~planetary_raster.planet.planets` registry
+    :param planet: A :class:`~bhuvanam.planet.Planet` instance, or a
+        string key from the :data:`~bhuvanam.planet.planets` registry
         (e.g. ``"jupiter"``). Pass a custom ``Planet`` subclass instance to use
         a body not in the registry.
     :param bounds: Spatial extent of the source image in ``input_projection`` units.
@@ -89,7 +89,7 @@ class Observation:
 
         The CRS and bounds are read from the file's geospatial metadata so no
         additional arguments are needed.  The projection stored in the file is
-        passed directly to :class:`~planetary_raster.gridconfig.GridConfig`.
+        passed directly to :class:`~bhuvanam.gridconfig.GridConfig`.
 
         :param file_path: Path to a GeoTIFF file.
         """
@@ -111,7 +111,7 @@ class Observation:
         """Load a non-GeoTIFF image and build the spatial index.
 
         Reads pixel data from ``file_path`` and constructs a
-        :class:`~planetary_raster.gridconfig.GridConfig` from the supplied
+        :class:`~bhuvanam.gridconfig.GridConfig` from the supplied
         bounds and projection metadata.
 
         :param file_path: Path to the image (.fits, .jpg, .jpeg, .png).
